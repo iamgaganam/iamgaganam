@@ -18,6 +18,12 @@ I'm a **Software Engineering undergraduate** passionate about building scalable 
 - 💬 Ask me about **web development**, **automation**, and **cloud technologies**
 - ⚡ Fun fact: I automate everything I can get my hands on!
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com//iamgaganam/iamgaganam/output/github-snake-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com//iamgaganam//iamgaganam/output/github-snake.svg" />
+  <img alt="github-snake" src="https://raw.githubusercontent.com//iamgaganam//iamgaganam/output/github-snake.svg" />
+</picture>
+
 ## 🛠️ Tech Stack
 
 ### 💻 Programming Languages
@@ -194,6 +200,7 @@ I'm a **Software Engineering undergraduate** passionate about building scalable 
 [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:gaganam220@gmail.com)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/gagana-methmal/)
 [![Portfolio](https://img.shields.io/badge/Portfolio-000000?style=for-the-badge&logo=About.me&logoColor=white)](https://yourportfolio.com)
+
 
 </div>
 
