@@ -1,7 +1,11 @@
 @import "tailwindcss";
 
-/* Custom color utilities for light/dark mode */
+/* ==========================================================================
+   CUSTOM UTILITIES
+   ========================================================================== */
+
 @layer utilities {
+  /* Brand color utilities for consistent theming */
   .text-primary-light {
     @apply text-lime-600;
   }
@@ -13,14 +17,53 @@
   .border-primary-light {
     @apply border-lime-600;
   }
+
+  /* Visual effects utilities */
+  .text-glow {
+    text-shadow: 0 0 30px rgba(190, 242, 100, 0.5),
+      0 0 60px rgba(190, 242, 100, 0.3), 0 0 90px rgba(190, 242, 100, 0.1);
+  }
 }
 
-/* Dark mode transitions */
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+/* Global smooth transitions for theme switching */
 * {
   @apply transition-colors duration-300;
 }
 
-/* Custom scrollbar */
+/* Smooth scroll behavior for navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Dark mode color scheme enforcement */
+.dark {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   COMPONENT STYLES
+   ========================================================================== */
+
+/* Navigation with glassmorphism effect */
+nav {
+  background-color: rgba(26, 26, 26, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+/* Enhanced interaction states */
+button,
+a {
+  transition: all 0.3s ease;
+}
+
+/* ==========================================================================
+   SCROLLBAR CUSTOMIZATION
+   ========================================================================== */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -37,12 +80,11 @@
   @apply bg-gray-500 dark:bg-[#a3d856];
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
 
-/* Custom animations */
+/* Keyframe definitions */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -74,6 +116,7 @@ html {
   }
 }
 
+/* Animation utility classes */
 .animate-fadeIn {
   animation: fadeIn 1s ease-out;
 }
@@ -86,33 +129,7 @@ html {
   animation: glow 2s ease-in-out infinite;
 }
 
+/* Animation timing utilities */
 .animation-delay-2000 {
   animation-delay: 2s;
-}
-
-/* Glow text effect */
-.text-glow {
-  text-shadow: 0 0 30px rgba(190, 242, 100, 0.5),
-    0 0 60px rgba(190, 242, 100, 0.3), 0 0 90px rgba(190, 242, 100, 0.1);
-}
-
-/* Override Flowbite dark mode */
-.dark {
-  color-scheme: dark;
-}
-
-/* Ensure proper dark mode for navbar */
-nav {
-  background-color: rgba(26, 26, 26, 0.8) !important;
-  backdrop-filter: blur(10px);
-}
-
-/* Button hover effects */
-button {
-  transition: all 0.3s ease;
-}
-
-/* Link hover effects */
-a {
-  transition: color 0.3s ease;
 }

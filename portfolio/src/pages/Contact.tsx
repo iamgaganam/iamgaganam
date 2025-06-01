@@ -14,9 +14,7 @@ import {
 } from "react-icons/fa";
 import { HiSparkles, HiLightningBolt } from "react-icons/hi";
 
-// ========================
-// Type Definitions
-// ========================
+// Types
 interface FormData {
   name: string;
   email: string;
@@ -45,9 +43,7 @@ interface CommandHistory {
   type: "input" | "output" | "error" | "success";
 }
 
-// ========================
 // Constants
-// ========================
 const CONTACT_INFO: ContactInfo[] = [
   {
     icon: FaEnvelope,
@@ -99,16 +95,8 @@ const INITIAL_FORM_DATA: FormData = {
 };
 
 const INITIAL_TERMINAL_HISTORY: CommandHistory[] = [
-  {
-    command: "",
-    output: "🚀 Contact Terminal v2.0.0",
-    type: "success",
-  },
-  {
-    command: "",
-    output: 'Type "help" for available commands',
-    type: "output",
-  },
+  { command: "", output: "🚀 Contact Terminal v2.0.0", type: "success" },
+  { command: "", output: 'Type "help" for available commands', type: "output" },
 ];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,17 +104,32 @@ const MIN_MESSAGE_LENGTH = 10;
 const SUCCESS_MESSAGE_DURATION = 5000;
 const FORM_SUBMIT_DELAY = 2000;
 
-// ========================
-// Utility Functions
-// ========================
+const TERMINAL_COMMANDS = {
+  HELP: `📋 Available commands:
+• name [your name]     - Set your name
+• email [your email]   - Set your email  
+• subject [subject]    - Set message subject
+• message [text]       - Set your message
+• send                 - Send the message
+• status               - Check form status
+• info                 - Show contact details
+• clear                - Clear terminal
+• exit                 - Exit terminal mode`,
+  INFO: (contactInfo: ContactInfo[]) => `📞 Contact Information:
+📧 Email: ${contactInfo[0].value}
+📱 Phone: ${contactInfo[1].value}
+📍 Location: ${contactInfo[2].value}
+💼 GitHub: ${contactInfo[3].displayValue}
+🔗 LinkedIn: ${contactInfo[4].value}`,
+};
+
+// Utilities
 const validateEmail = (email: string): boolean => EMAIL_REGEX.test(email);
 
 const validateFormData = (data: FormData): FormErrors => {
   const errors: FormErrors = {};
 
-  if (!data.name.trim()) {
-    errors.name = "Name is required";
-  }
+  if (!data.name.trim()) errors.name = "Name is required";
 
   if (!data.email.trim()) {
     errors.email = "Email is required";
@@ -143,13 +146,7 @@ const validateFormData = (data: FormData): FormErrors => {
   return errors;
 };
 
-// ========================
-// Sub-components
-// ========================
-
-/**
- * Contact Information Card Component
- */
+// Components
 const ContactCard: React.FC<{ info: ContactInfo; delay: number }> = ({
   info,
   delay,
@@ -186,9 +183,6 @@ const ContactCard: React.FC<{ info: ContactInfo; delay: number }> = ({
   );
 };
 
-/**
- * Form Input Component with floating label
- */
 const FormInput: React.FC<{
   name: string;
   value: string;
@@ -236,9 +230,53 @@ const FormInput: React.FC<{
   </motion.div>
 );
 
-/**
- * Success Message Overlay
- */
+const FormTextarea: React.FC<{
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  error?: string;
+  label: string;
+  required?: boolean;
+  rows?: number;
+}> = ({ name, value, onChange, error, label, required, rows = 4 }) => (
+  <motion.div whileFocus={{ scale: 1.02 }} className="relative">
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      required={required}
+      rows={rows}
+      className={`w-full px-4 py-4 bg-black/30 border rounded-xl focus:outline-none transition-all resize-none peer ${
+        error
+          ? "border-red-500 focus:border-red-400"
+          : "border-gray-700 focus:border-[#BEF264]"
+      }`}
+      placeholder=" "
+    />
+    <label
+      className={`absolute left-4 transition-all pointer-events-none ${
+        value || error ? "-top-3 text-sm bg-black/60 px-2" : "top-4 text-base"
+      } ${
+        error
+          ? "text-red-400"
+          : "text-gray-400 peer-focus:text-[#BEF264] peer-focus:-top-3 peer-focus:text-sm peer-focus:bg-black/60 peer-focus:px-2"
+      }`}
+    >
+      {label} {required && "*"}
+    </label>
+    {error && (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-1 mt-2 text-red-400 text-sm"
+      >
+        <FaExclamationTriangle size={12} />
+        {error}
+      </motion.div>
+    )}
+  </motion.div>
+);
+
 const SuccessMessage: React.FC = () => (
   <motion.div
     initial={{ opacity: 0, scale: 0.8 }}
@@ -274,11 +312,78 @@ const SuccessMessage: React.FC = () => (
   </motion.div>
 );
 
-// ========================
-// Main Component
-// ========================
+const TerminalWindow: React.FC<{
+  commandHistory: CommandHistory[];
+  currentCommand: string;
+  onCommandChange: (value: string) => void;
+  onCommandSubmit: (command: string) => void;
+}> = ({ commandHistory, currentCommand, onCommandChange, onCommandSubmit }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  return (
+    <div className="bg-black/30 rounded-xl overflow-hidden border border-gray-800/30 font-mono shadow-2xl">
+      <div className="bg-black/50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-red-500 rounded-full" />
+          <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+          <div className="w-3 h-3 bg-green-500 rounded-full" />
+        </div>
+        <span className="text-xs text-gray-400 flex items-center gap-2">
+          <FaTerminal size={12} />
+          contact@terminal:~
+        </span>
+      </div>
+      <div className="p-6 h-96 overflow-y-auto">
+        {commandHistory.map((item, index) => (
+          <div key={index} className="mb-3">
+            {item.command && (
+              <div className="flex items-start gap-3 mb-1">
+                <span className="text-[#BEF264] select-none font-bold">❯</span>
+                <span className="text-white">{item.command}</span>
+              </div>
+            )}
+            {item.output && (
+              <div
+                className={`ml-6 whitespace-pre-wrap leading-relaxed text-sm ${
+                  item.type === "error"
+                    ? "text-red-400"
+                    : item.type === "success"
+                    ? "text-green-400"
+                    : "text-gray-300"
+                }`}
+              >
+                {item.output}
+              </div>
+            )}
+          </div>
+        ))}
+        <div className="flex items-center gap-3 mt-4">
+          <span className="text-[#BEF264] select-none font-bold">❯</span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={currentCommand}
+            onChange={(e) => onCommandChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && currentCommand.trim()) {
+                onCommandSubmit(currentCommand);
+              }
+            }}
+            className="flex-1 bg-transparent outline-none text-white caret-[#BEF264] text-sm"
+            placeholder="Type a command..."
+            autoFocus
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Contact: React.FC = () => {
-  // State management
   const [isVisible, setIsVisible] = useState(false);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -290,20 +395,11 @@ const Contact: React.FC = () => {
   );
   const [currentCommand, setCurrentCommand] = useState("");
 
-  // Refs
   const sectionRef = useRef<HTMLDivElement>(null);
-  const terminalInputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * Handle intersection observer for scroll animations
-   */
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
+      ([entry]) => setIsVisible(entry.isIntersecting),
       { threshold: 0.1 }
     );
 
@@ -314,24 +410,17 @@ const Contact: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  /**
-   * Handle form input changes
-   */
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error when user starts typing
     if (formErrors[name as keyof FormErrors]) {
       setFormErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -350,41 +439,22 @@ const Contact: React.FC = () => {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), SUCCESS_MESSAGE_DURATION);
 
-    // Reset form
     setFormData(INITIAL_FORM_DATA);
     setFormErrors({});
   };
 
-  /**
-   * Process terminal commands
-   */
   const processCommand = (cmd: string) => {
     const command = cmd.toLowerCase().trim();
     let output = "";
     let type: CommandHistory["type"] = "output";
 
-    // Command processing logic
     switch (command) {
       case "help":
-        output = `📋 Available commands:
-• name [your name]     - Set your name
-• email [your email]   - Set your email  
-• subject [subject]    - Set message subject
-• message [text]       - Set your message
-• send                 - Send the message
-• status               - Check form status
-• info                 - Show contact details
-• clear                - Clear terminal
-• exit                 - Exit terminal mode`;
+        output = TERMINAL_COMMANDS.HELP;
         break;
 
       case "info":
-        output = `📞 Contact Information:
-📧 Email: ${CONTACT_INFO[0].value}
-📱 Phone: ${CONTACT_INFO[1].value}
-📍 Location: ${CONTACT_INFO[2].value}
-💼 GitHub: ${CONTACT_INFO[3].displayValue}
-🔗 LinkedIn: ${CONTACT_INFO[4].value}`;
+        output = TERMINAL_COMMANDS.INFO(CONTACT_INFO);
         break;
 
       case "status":
@@ -433,61 +503,86 @@ const Contact: React.FC = () => {
 
       default:
         // Handle parameter commands
-        if (command.startsWith("name ")) {
-          const name = cmd.substring(5).trim();
-          if (name) {
-            setFormData((prev) => ({ ...prev, name }));
-            output = `✅ Name set to: ${name}`;
-            type = "success";
-          } else {
-            output = "❌ Please provide a name";
-            type = "error";
+        const handlers = {
+          name: (value: string) => {
+            if (value) {
+              setFormData((prev) => ({ ...prev, name: value }));
+              return {
+                output: `✅ Name set to: ${value}`,
+                type: "success" as const,
+              };
+            }
+            return {
+              output: "❌ Please provide a name",
+              type: "error" as const,
+            };
+          },
+          email: (value: string) => {
+            if (value && validateEmail(value)) {
+              setFormData((prev) => ({ ...prev, email: value }));
+              return {
+                output: `✅ Email set to: ${value}`,
+                type: "success" as const,
+              };
+            }
+            return {
+              output: "❌ Please provide a valid email address",
+              type: "error" as const,
+            };
+          },
+          subject: (value: string) => {
+            setFormData((prev) => ({ ...prev, subject: value }));
+            return {
+              output: `✅ Subject set to: ${value}`,
+              type: "success" as const,
+            };
+          },
+          message: (value: string) => {
+            if (value.length >= MIN_MESSAGE_LENGTH) {
+              setFormData((prev) => ({ ...prev, message: value }));
+              return {
+                output: `✅ Message set: ${value.substring(0, 50)}${
+                  value.length > 50 ? "..." : ""
+                }`,
+                type: "success" as const,
+              };
+            }
+            return {
+              output: `❌ Message must be at least ${MIN_MESSAGE_LENGTH} characters long`,
+              type: "error" as const,
+            };
+          },
+        };
+
+        let handled = false;
+        for (const [prefix, handler] of Object.entries(handlers)) {
+          if (command.startsWith(`${prefix} `)) {
+            const value = cmd.substring(prefix.length + 1).trim();
+            const result = handler(value);
+            output = result.output;
+            type = result.type;
+            handled = true;
+            break;
           }
-        } else if (command.startsWith("email ")) {
-          const email = cmd.substring(6).trim();
-          if (email && validateEmail(email)) {
-            setFormData((prev) => ({ ...prev, email }));
-            output = `✅ Email set to: ${email}`;
-            type = "success";
-          } else {
-            output = "❌ Please provide a valid email address";
-            type = "error";
-          }
-        } else if (command.startsWith("subject ")) {
-          const subject = cmd.substring(8).trim();
-          setFormData((prev) => ({ ...prev, subject }));
-          output = `✅ Subject set to: ${subject}`;
-          type = "success";
-        } else if (command.startsWith("message ")) {
-          const message = cmd.substring(8).trim();
-          if (message.length >= MIN_MESSAGE_LENGTH) {
-            setFormData((prev) => ({ ...prev, message }));
-            output = `✅ Message set: ${message.substring(0, 50)}${
-              message.length > 50 ? "..." : ""
-            }`;
-            type = "success";
-          } else {
-            output = `❌ Message must be at least ${MIN_MESSAGE_LENGTH} characters long`;
-            type = "error";
-          }
-        } else {
+        }
+
+        if (!handled) {
           output = `❌ Unknown command: "${command}"\n💡 Type "help" for available commands`;
           type = "error";
         }
     }
 
-    // Update command history
     setCommandHistory((prev) => [
       ...prev,
       { command: cmd, output: "", type: "input" },
       { command: "", output, type },
     ]);
+    setCurrentCommand("");
   };
 
   return (
     <section ref={sectionRef} className="text-white relative py-16">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
           animate={isVisible ? { opacity: 1, y: 0 } : {}}
@@ -504,14 +599,12 @@ const Contact: React.FC = () => {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-start">
-          {/* Contact Form / Terminal */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 1, delay: 0.2 }}
             className="relative"
           >
-            {/* Mode Toggle */}
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-bold text-white">Get In Touch</h3>
               <motion.button
@@ -527,7 +620,6 @@ const Contact: React.FC = () => {
             </div>
 
             {!terminalMode ? (
-              /* Contact Form */
               <motion.form
                 onSubmit={handleSubmit}
                 layout
@@ -560,44 +652,14 @@ const Contact: React.FC = () => {
                   label="Subject (Optional)"
                 />
 
-                <motion.div whileFocus={{ scale: 1.02 }} className="relative">
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    required
-                    rows={4}
-                    className={`w-full px-4 py-4 bg-black/30 border rounded-xl focus:outline-none transition-all resize-none peer ${
-                      formErrors.message
-                        ? "border-red-500 focus:border-red-400"
-                        : "border-gray-700 focus:border-[#BEF264]"
-                    }`}
-                    placeholder=" "
-                  />
-                  <label
-                    className={`absolute left-4 transition-all pointer-events-none ${
-                      formData.message || formErrors.message
-                        ? "-top-3 text-sm bg-black/60 px-2"
-                        : "top-4 text-base"
-                    } ${
-                      formErrors.message
-                        ? "text-red-400"
-                        : "text-gray-400 peer-focus:text-[#BEF264] peer-focus:-top-3 peer-focus:text-sm peer-focus:bg-black/60 peer-focus:px-2"
-                    }`}
-                  >
-                    Your Message *
-                  </label>
-                  {formErrors.message && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-1 mt-2 text-red-400 text-sm"
-                    >
-                      <FaExclamationTriangle size={12} />
-                      {formErrors.message}
-                    </motion.div>
-                  )}
-                </motion.div>
+                <FormTextarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  error={formErrors.message}
+                  label="Your Message"
+                  required
+                />
 
                 <motion.button
                   type="submit"
@@ -620,76 +682,19 @@ const Contact: React.FC = () => {
                 </motion.button>
               </motion.form>
             ) : (
-              /* Terminal Mode */
-              <div className="bg-black/30 rounded-xl overflow-hidden border border-gray-800/30 font-mono shadow-2xl">
-                <div className="bg-black/50 px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full" />
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                    <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  </div>
-                  <span className="text-xs text-gray-400 flex items-center gap-2">
-                    <FaTerminal size={12} />
-                    contact@terminal:~
-                  </span>
-                </div>
-                <div className="p-6 h-96 overflow-y-auto">
-                  {commandHistory.map((item, index) => (
-                    <div key={index} className="mb-3">
-                      {item.command && (
-                        <div className="flex items-start gap-3 mb-1">
-                          <span className="text-[#BEF264] select-none font-bold">
-                            ❯
-                          </span>
-                          <span className="text-white">{item.command}</span>
-                        </div>
-                      )}
-                      {item.output && (
-                        <div
-                          className={`ml-6 whitespace-pre-wrap leading-relaxed text-sm ${
-                            item.type === "error"
-                              ? "text-red-400"
-                              : item.type === "success"
-                              ? "text-green-400"
-                              : "text-gray-300"
-                          }`}
-                        >
-                          {item.output}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-3 mt-4">
-                    <span className="text-[#BEF264] select-none font-bold">
-                      ❯
-                    </span>
-                    <input
-                      ref={terminalInputRef}
-                      type="text"
-                      value={currentCommand}
-                      onChange={(e) => setCurrentCommand(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && currentCommand.trim()) {
-                          processCommand(currentCommand);
-                          setCurrentCommand("");
-                        }
-                      }}
-                      className="flex-1 bg-transparent outline-none text-white caret-[#BEF264] text-sm"
-                      placeholder="Type a command..."
-                      autoFocus
-                    />
-                  </div>
-                </div>
-              </div>
+              <TerminalWindow
+                commandHistory={commandHistory}
+                currentCommand={currentCommand}
+                onCommandChange={setCurrentCommand}
+                onCommandSubmit={processCommand}
+              />
             )}
 
-            {/* Success Message */}
             <AnimatePresence>
               {showSuccess && <SuccessMessage />}
             </AnimatePresence>
           </motion.div>
 
-          {/* Contact Information */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={isVisible ? { opacity: 1, x: 0 } : {}}
@@ -706,7 +711,6 @@ const Contact: React.FC = () => {
               </p>
             </div>
 
-            {/* Contact Cards */}
             <div className="space-y-4">
               {CONTACT_INFO.map((info, index) => (
                 <ContactCard
@@ -717,7 +721,6 @@ const Contact: React.FC = () => {
               ))}
             </div>
 
-            {/* Quick Response Info */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}

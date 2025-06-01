@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   SiReact,
@@ -47,7 +47,7 @@ import {
 import { DiJava, DiMsqlServer } from "react-icons/di";
 import { FaGraduationCap, FaQuoteLeft } from "react-icons/fa";
 
-// Type definitions for better type safety
+// ====================== Types ======================
 interface Skill {
   name: string;
   icon: React.ElementType;
@@ -80,13 +80,23 @@ interface EducationItem {
   achievement?: string;
 }
 
-// Constants for better maintainability
-const PARTICLE_COUNT = 80;
-const PARTICLE_CONNECTION_DISTANCE = 100;
-const ANIMATION_THRESHOLD = 0.1;
+// ====================== Constants ======================
+const ANIMATION_CONFIG = {
+  PARTICLE_COUNT_DESKTOP: 80,
+  PARTICLE_COUNT_MOBILE: 30,
+  CONNECTION_DISTANCE: 100,
+  VISIBILITY_THRESHOLD: 0.1,
+  MOBILE_BREAKPOINT: 768,
+} as const;
 
-// Static data moved outside component to prevent re-creation on renders
-const SKILL_CATEGORIES: SkillCategory[] = [
+const PROFILE_CONFIG = {
+  IMAGE_URL:
+    "https://media.licdn.com/dms/image/v2/D5603AQFK7gsvv-nUqw/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1704085279435?e=1753920000&v=beta&t=08FWlAtqPFcTWRHvbcYXdyKskS9yJ-oZ_NR4w6epuRY",
+  QUOTE:
+    "I am a passionate and driven software engineering graduate with a strong focus on DevOps and full-stack software development. My journey in software engineering has been driven by curiosity and a desire to create meaningful, scalable solutions. I thrive in collaborative environments where innovation meets practical implementation, constantly exploring cutting-edge technologies and methodologies.",
+} as const;
+
+const SKILL_CATEGORIES: readonly SkillCategory[] = [
   {
     title: "Programming Languages",
     skills: [
@@ -166,9 +176,9 @@ const SKILL_CATEGORIES: SkillCategory[] = [
       { name: "Canva", icon: SiCanva, color: "#00C4CC" },
     ],
   },
-];
+] as const;
 
-const EDUCATION_DATA: EducationItem[] = [
+const EDUCATION_DATA: readonly EducationItem[] = [
   {
     id: "university",
     institution: "University of Plymouth",
@@ -191,64 +201,116 @@ const EDUCATION_DATA: EducationItem[] = [
       "Completed comprehensive secondary education with Pearson Edexcel International GCSE in Science Stream and International Advanced Levels in Mathematics Stream. Built strong foundational knowledge in analytical thinking and problem-solving.",
     achievement: "Successfully Completed",
   },
-];
+] as const;
 
-// Animation variants for consistent motion design
 const ANIMATION_VARIANTS = {
   container: {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   },
   item: {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   },
+} as const;
+
+// ====================== Custom Hooks ======================
+const useResponsive = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () =>
+      setIsMobile(window.innerWidth < ANIMATION_CONFIG.MOBILE_BREAKPOINT);
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return { isMobile };
 };
 
-/**
- * Custom hook for intersection observer to handle component visibility
- */
-const useIntersectionObserver = (threshold: number = ANIMATION_THRESHOLD) => {
+const useIntersectionObserver = (
+  threshold = ANIMATION_CONFIG.VISIBILITY_THRESHOLD
+) => {
   const [isVisible, setIsVisible] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
+      ([entry]) => setIsVisible(entry.isIntersecting),
       { threshold }
     );
 
-    const currentElement = elementRef.current;
-    if (currentElement) {
-      observer.observe(currentElement);
-    }
+    const element = elementRef.current;
+    if (element) observer.observe(element);
 
-    return () => {
-      if (currentElement) {
-        observer.unobserve(currentElement);
-      }
-    };
+    return () => element && observer.unobserve(element);
   }, [threshold]);
 
   return { isVisible, elementRef };
 };
 
-/**
- * Custom hook for particle animation canvas
- */
 const useParticleAnimation = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { isMobile } = useResponsive();
+  const animationRef = useRef<number>();
+
+  const createParticle = useCallback(
+    (canvas: HTMLCanvasElement): Particle => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: (Math.random() - 0.5) * 0.3,
+      opacity: Math.random() * 0.3 + 0.1,
+      color: Math.random() > 0.5 ? "190, 242, 100" : "74, 222, 128",
+    }),
+    []
+  );
+
+  const drawParticle = useCallback(
+    (ctx: CanvasRenderingContext2D, particle: Particle) => {
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${particle.color}, ${particle.opacity})`;
+      ctx.fill();
+    },
+    []
+  );
+
+  const drawConnection = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      p1: Particle,
+      p2: Particle,
+      distance: number
+    ) => {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = `rgba(190, 242, 100, ${
+        0.1 * (1 - distance / ANIMATION_CONFIG.CONNECTION_DISTANCE)
+      })`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    },
+    []
+  );
+
+  const updateParticle = useCallback(
+    (particle: Particle, canvas: HTMLCanvasElement) => {
+      particle.x += particle.speedX;
+      particle.y += particle.speedY;
+
+      // Wrap around screen edges
+      if (particle.x > canvas.width) particle.x = 0;
+      if (particle.x < 0) particle.x = canvas.width;
+      if (particle.y > canvas.height) particle.y = 0;
+      if (particle.y < 0) particle.y = canvas.height;
+    },
+    []
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -257,90 +319,57 @@ const useParticleAnimation = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas dimensions
+    let particles: Particle[] = [];
+
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+
+      // Reinitialize particles on resize
+      const count = isMobile
+        ? ANIMATION_CONFIG.PARTICLE_COUNT_MOBILE
+        : ANIMATION_CONFIG.PARTICLE_COUNT_DESKTOP;
+      particles = Array.from({ length: count }, () => createParticle(canvas));
     };
 
-    resizeCanvas();
-
-    // Initialize particles
-    const particles: Particle[] = [];
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 0.5,
-        speedX: (Math.random() - 0.5) * 0.3,
-        speedY: (Math.random() - 0.5) * 0.3,
-        opacity: Math.random() * 0.3 + 0.1,
-        color: Math.random() > 0.5 ? "190, 242, 100" : "74, 222, 128",
-      });
-    }
-
-    let animationFrame: number;
-
-    // Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.forEach((particle, index) => {
-        // Draw particle
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${particle.color}, ${particle.opacity})`;
-        ctx.fill();
+        drawParticle(ctx, particle);
+        updateParticle(particle, canvas);
 
-        // Update particle position
-        particle.x += particle.speedX;
-        particle.y += particle.speedY;
+        // Draw connections (skip on mobile for performance)
+        if (!isMobile) {
+          particles.slice(index + 1).forEach((other) => {
+            const dx = particle.x - other.x;
+            const dy = particle.y - other.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Draw connections between nearby particles
-        particles.slice(index + 1).forEach((otherParticle) => {
-          const dx = particle.x - otherParticle.x;
-          const dy = particle.y - otherParticle.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < PARTICLE_CONNECTION_DISTANCE) {
-            ctx.beginPath();
-            ctx.moveTo(particle.x, particle.y);
-            ctx.lineTo(otherParticle.x, otherParticle.y);
-            ctx.strokeStyle = `rgba(190, 242, 100, ${
-              0.1 * (1 - distance / PARTICLE_CONNECTION_DISTANCE)
-            })`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        });
-
-        // Wrap particles around screen edges
-        if (particle.x > canvas.width) particle.x = 0;
-        if (particle.x < 0) particle.x = canvas.width;
-        if (particle.y > canvas.height) particle.y = 0;
-        if (particle.y < 0) particle.y = canvas.height;
+            if (distance < ANIMATION_CONFIG.CONNECTION_DISTANCE) {
+              drawConnection(ctx, particle, other, distance);
+            }
+          });
+        }
       });
 
-      animationFrame = requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(animate);
     };
 
+    resizeCanvas();
     animate();
 
-    // Handle window resize
     window.addEventListener("resize", resizeCanvas);
-
     return () => {
       window.removeEventListener("resize", resizeCanvas);
-      cancelAnimationFrame(animationFrame);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, []);
+  }, [isMobile, createParticle, drawParticle, drawConnection, updateParticle]);
 
   return canvasRef;
 };
 
-/**
- * ProfileSection Component - Displays profile image and personal quote
- */
+// ====================== Components ======================
 const ProfileSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
   <motion.div
     initial={{ opacity: 0, x: -50 }}
@@ -348,47 +377,46 @@ const ProfileSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
     transition={{ duration: 0.8, delay: 0.2 }}
     className="flex flex-col items-center lg:items-start"
   >
-    {/* Profile Image with enhanced styling */}
+    {/* Profile Image */}
     <div className="relative mb-8 group">
-      <div className="w-72 h-72 rounded-3xl bg-gradient-to-br from-[#BEF264] via-[#4ade80] to-[#22c55e] p-1 shadow-2xl shadow-[#BEF264]/20">
-        <div className="w-full h-full rounded-3xl bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] p-3">
+      <div className="w-48 h-48 sm:w-64 sm:h-64 lg:w-72 lg:h-72 rounded-3xl bg-gradient-to-br from-[#BEF264] via-[#4ade80] to-[#22c55e] p-1 shadow-2xl shadow-[#BEF264]/20">
+        <div className="w-full h-full rounded-3xl bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] p-2 sm:p-3">
           <img
-            src="https://media.licdn.com/dms/image/v2/D5603AQFK7gsvv-nUqw/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1704085279435?e=1753920000&v=beta&t=08FWlAtqPFcTWRHvbcYXdyKskS9yJ-oZ_NR4w6epuRY"
+            src={PROFILE_CONFIG.IMAGE_URL}
             alt="Gagana Methmal Profile"
             className="w-full h-full rounded-2xl object-cover transition-transform duration-500 group-hover:scale-105"
           />
         </div>
       </div>
 
-      {/* Enhanced floating orbs */}
-      <div className="absolute -top-6 -right-6 w-20 h-20 bg-gradient-to-br from-[#BEF264]/30 to-[#4ade80]/30 rounded-full blur-xl animate-pulse" />
-      <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-gradient-to-br from-[#4ade80]/20 to-[#22c55e]/20 rounded-full blur-xl animate-pulse animation-delay-2000" />
-      <div className="absolute top-1/2 -right-8 w-16 h-16 bg-[#BEF264]/10 rounded-full blur-lg animate-bounce animation-delay-1000" />
+      {/* Floating Orbs */}
+      <div className="absolute -top-4 -right-4 sm:-top-6 sm:-right-6 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-[#BEF264]/30 to-[#4ade80]/30 rounded-full blur-xl animate-pulse" />
+      <div className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-6 w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-[#4ade80]/20 to-[#22c55e]/20 rounded-full blur-xl animate-pulse animation-delay-2000" />
+      <div className="absolute top-1/2 -right-4 sm:-right-6 lg:-right-8 w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-[#BEF264]/10 rounded-full blur-lg animate-bounce animation-delay-1000" />
     </div>
 
-    {/* Enhanced Quote Section */}
+    {/* Quote Section */}
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={isVisible ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.8, delay: 0.4 }}
-      className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-lg border border-gray-700/50 rounded-2xl p-8 shadow-2xl relative"
+      className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-lg border border-gray-700/50 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-2xl relative"
     >
-      <FaQuoteLeft className="absolute top-4 left-4 text-[#BEF264]/30 text-2xl" />
-      <p className="text-gray-300 text-lg leading-relaxed pl-8">
-        I am a passionate and driven software engineering graduate with a strong
-        focus on DevOps and full-stack software development. My journey in
-        software engineering has been driven by curiosity and a desire to create
-        meaningful, scalable solutions. I thrive in collaborative environments
-        where innovation meets practical implementation, constantly exploring
-        cutting-edge technologies and methodologies.
+      <FaQuoteLeft className="absolute top-3 left-3 sm:top-4 sm:left-4 text-[#BEF264]/30 text-lg sm:text-xl lg:text-2xl" />
+      <p className="text-gray-300 text-sm sm:text-base lg:text-lg leading-relaxed pl-6 sm:pl-8">
+        {PROFILE_CONFIG.QUOTE}
       </p>
-      <div className="mt-6 flex items-center gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-[#BEF264] to-[#4ade80] rounded-full flex items-center justify-center">
-          <span className="text-black font-bold text-lg">GM</span>
+      <div className="mt-4 sm:mt-6 flex items-center gap-3 sm:gap-4">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#BEF264] to-[#4ade80] rounded-full flex items-center justify-center">
+          <span className="text-black font-bold text-sm sm:text-base lg:text-lg">
+            GM
+          </span>
         </div>
         <div>
-          <p className="font-semibold text-white">Gagana Methmal</p>
-          <p className="text-sm text-gray-400">
+          <p className="font-semibold text-white text-sm sm:text-base">
+            Gagana Methmal
+          </p>
+          <p className="text-xs sm:text-sm text-gray-400">
             Software Developer & DevOps Enthusiast
           </p>
         </div>
@@ -397,18 +425,37 @@ const ProfileSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
   </motion.div>
 );
 
-/**
- * SkillsSection Component - Displays categorized technical skills
- */
+const SkillCard: React.FC<{
+  skill: Skill;
+  index: number;
+  categoryIndex: number;
+  isVisible: boolean;
+}> = ({ skill, index, categoryIndex, isVisible }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={isVisible ? { opacity: 1, scale: 1 } : {}}
+    transition={{ duration: 0.3, delay: categoryIndex * 0.1 + index * 0.05 }}
+    whileHover={{ scale: 1.1, rotate: 5 }}
+    className="flex items-center gap-1.5 sm:gap-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 hover:border-[#BEF264]/50 transition-all"
+  >
+    <skill.icon
+      size={16}
+      style={{ color: skill.color }}
+      className="drop-shadow-[0_0_8px_currentColor] sm:w-5 sm:h-5"
+    />
+    <span className="text-xs sm:text-sm text-gray-300">{skill.name}</span>
+  </motion.div>
+);
+
 const SkillsSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
   <motion.div
     variants={ANIMATION_VARIANTS.container}
     initial="hidden"
     animate={isVisible ? "visible" : "hidden"}
-    className="space-y-6"
+    className="space-y-4 sm:space-y-6"
   >
-    <div className="flex items-center gap-4 mb-8">
-      <h3 className="text-3xl font-bold bg-gradient-to-r from-[#BEF264] to-[#4ade80] bg-clip-text text-transparent">
+    <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#BEF264] to-[#4ade80] bg-clip-text text-transparent">
         Technical Skills
       </h3>
       <div className="flex-1 h-0.5 bg-gradient-to-r from-[#BEF264]/50 to-transparent" />
@@ -418,32 +465,20 @@ const SkillsSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
       <motion.div
         key={category.title}
         variants={ANIMATION_VARIANTS.item}
-        className="space-y-3"
+        className="space-y-2 sm:space-y-3"
       >
-        <h4 className="text-xl font-semibold text-white border-l-4 border-[#BEF264] pl-4 bg-gradient-to-r from-gray-800/30 to-transparent py-2">
+        <h4 className="text-base sm:text-lg lg:text-xl font-semibold text-white border-l-4 border-[#BEF264] pl-3 sm:pl-4 bg-gradient-to-r from-gray-800/30 to-transparent py-1.5 sm:py-2">
           {category.title}
         </h4>
-
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           {category.skills.map((skill, index) => (
-            <motion.div
+            <SkillCard
               key={skill.name}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={isVisible ? { opacity: 1, scale: 1 } : {}}
-              transition={{
-                duration: 0.3,
-                delay: categoryIndex * 0.1 + index * 0.05,
-              }}
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2 hover:border-[#BEF264]/50 transition-all"
-            >
-              <skill.icon
-                size={20}
-                style={{ color: skill.color }}
-                className="drop-shadow-[0_0_8px_currentColor]"
-              />
-              <span className="text-sm text-gray-300">{skill.name}</span>
-            </motion.div>
+              skill={skill}
+              index={index}
+              categoryIndex={categoryIndex}
+              isVisible={isVisible}
+            />
           ))}
         </div>
       </motion.div>
@@ -451,164 +486,202 @@ const SkillsSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
   </motion.div>
 );
 
-/**
- * EducationSection Component - Displays educational timeline
- */
-const EducationSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 50 }}
-    animate={isVisible ? { opacity: 1, y: 0 } : {}}
-    transition={{ duration: 0.8, delay: 0.6 }}
-    className="mt-16"
-  >
-    <div className="flex items-center gap-4 mb-12">
-      <h3 className="text-3xl font-bold bg-gradient-to-r from-[#BEF264] to-[#4ade80] bg-clip-text text-transparent">
-        Educational Journey
-      </h3>
-      <div className="flex-1 h-0.5 bg-gradient-to-r from-[#BEF264]/50 to-transparent" />
-    </div>
+const EducationCard: React.FC<{
+  education: EducationItem;
+  index: number;
+  isVisible: boolean;
+  isMobile: boolean;
+}> = ({ education, index, isVisible, isMobile }) => {
+  const isHighlighted = education.id === "university";
 
-    <div className="relative">
-      {/* Timeline line */}
-      <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-[#BEF264] via-[#4ade80] to-[#22c55e] rounded-full" />
-
-      <div className="space-y-16">
-        {EDUCATION_DATA.map((education, index) => (
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -50 }}
+      animate={isVisible ? { opacity: 1, x: 0 } : {}}
+      transition={{ duration: 0.5, delay: 0.8 + index * 0.2 }}
+      className="relative flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8"
+    >
+      {/* Timeline Node - Mobile */}
+      {isMobile && (
+        <div className="flex items-center gap-4 mb-4">
           <motion.div
-            key={education.id}
-            initial={{ opacity: 0, x: -50 }}
-            animate={isVisible ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.8 + index * 0.2 }}
-            className="relative flex items-start gap-8"
+            className={`w-16 h-16 ${
+              isHighlighted
+                ? "bg-gradient-to-br from-[#BEF264] to-[#4ade80]"
+                : "bg-gradient-to-br from-gray-700 to-gray-800"
+            } rounded-full flex items-center justify-center border-4 border-[#1a1a1a] shadow-xl ${
+              isHighlighted ? "shadow-[#BEF264]/30" : ""
+            }`}
+            whileHover={{ scale: 1.1, rotate: isHighlighted ? 5 : -5 }}
           >
-            {/* Timeline node */}
-            <div className="relative z-10 flex-shrink-0">
-              <motion.div
-                className={`w-20 h-20 ${
-                  education.id === "university"
-                    ? "bg-gradient-to-br from-[#BEF264] to-[#4ade80]"
-                    : "bg-gradient-to-br from-gray-700 to-gray-800"
-                } rounded-full flex items-center justify-center border-4 border-[#1a1a1a] shadow-2xl ${
-                  education.id === "university" ? "shadow-[#BEF264]/30" : ""
-                }`}
-                whileHover={{
-                  scale: 1.1,
-                  rotate: education.id === "university" ? 5 : -5,
-                }}
-              >
-                <FaGraduationCap
-                  size={28}
-                  className={
-                    education.id === "university"
-                      ? "text-black"
-                      : "text-[#BEF264]"
-                  }
-                />
-              </motion.div>
-              <div className="absolute -left-12 top-24 text-gray-400 font-bold text-3xl">
-                {education.year}
-              </div>
-            </div>
-
-            {/* Education content card */}
-            <motion.div
-              className={`${
-                education.id === "university"
-                  ? "bg-gradient-to-br from-gray-800/40 to-gray-900/40 border-gray-700/50 shadow-2xl"
-                  : "bg-gradient-to-br from-gray-800/30 to-gray-900/30 border-gray-700/30 shadow-xl"
-              } backdrop-blur-lg border rounded-2xl p-8 flex-1`}
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center gap-6 mb-4">
-                <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-[#BEF264]/30">
-                  <img
-                    src={education.logo}
-                    alt={`${education.institution} Logo`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <h4 className="text-2xl font-bold text-white mb-1">
-                    {education.institution}
-                  </h4>
-                  <p
-                    className={`font-medium ${
-                      education.id === "university"
-                        ? "text-[#BEF264]"
-                        : "text-gray-400"
-                    }`}
-                  >
-                    {education.period}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p
-                  className={`text-xl font-semibold ${
-                    education.id === "university"
-                      ? "text-[#BEF264]"
-                      : "text-gray-300"
-                  }`}
-                >
-                  {education.degree}
-                </p>
-                <p className="text-gray-300 leading-relaxed">
-                  {education.description}
-                </p>
-                {education.achievement && (
-                  <div
-                    className={`${
-                      education.id === "university"
-                        ? "bg-gradient-to-r from-[#BEF264] to-[#4ade80] text-black"
-                        : "bg-gray-700/50 text-gray-300"
-                    } px-4 py-2 rounded-lg font-bold inline-block mt-2`}
-                  >
-                    {education.achievement}
-                  </div>
-                )}
-              </div>
-            </motion.div>
+            <FaGraduationCap
+              size={24}
+              className={isHighlighted ? "text-black" : "text-[#BEF264]"}
+            />
           </motion.div>
-        ))}
-      </div>
-    </div>
-  </motion.div>
-);
+          <div className="text-gray-400 font-bold text-2xl">
+            {education.year}
+          </div>
+        </div>
+      )}
 
-/**
- * Main About Component
- */
+      {/* Timeline Node - Desktop */}
+      {!isMobile && (
+        <div className="relative z-10 flex-shrink-0">
+          <motion.div
+            className={`w-16 h-16 sm:w-20 sm:h-20 ${
+              isHighlighted
+                ? "bg-gradient-to-br from-[#BEF264] to-[#4ade80]"
+                : "bg-gradient-to-br from-gray-700 to-gray-800"
+            } rounded-full flex items-center justify-center border-4 border-[#1a1a1a] shadow-2xl ${
+              isHighlighted ? "shadow-[#BEF264]/30" : ""
+            }`}
+            whileHover={{ scale: 1.1, rotate: isHighlighted ? 5 : -5 }}
+          >
+            <FaGraduationCap
+              size={24}
+              className={isHighlighted ? "text-black" : "text-[#BEF264]"}
+            />
+          </motion.div>
+          <div className="absolute -left-12 top-24 text-gray-400 font-bold text-2xl sm:text-3xl hidden sm:block">
+            {education.year}
+          </div>
+        </div>
+      )}
+
+      {/* Education Content */}
+      <motion.div
+        className={`${
+          isHighlighted
+            ? "bg-gradient-to-br from-gray-800/40 to-gray-900/40 border-gray-700/50 shadow-2xl"
+            : "bg-gradient-to-br from-gray-800/30 to-gray-900/30 border-gray-700/30 shadow-xl"
+        } backdrop-blur-lg border rounded-2xl p-4 sm:p-6 lg:p-8 flex-1`}
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 border-[#BEF264]/30">
+            <img
+              src={education.logo}
+              alt={`${education.institution} Logo`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1">
+              {education.institution}
+            </h4>
+            <p
+              className={`text-sm sm:text-base font-medium ${
+                isHighlighted ? "text-[#BEF264]" : "text-gray-400"
+              }`}
+            >
+              {education.period}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2 sm:space-y-3">
+          <p
+            className={`text-base sm:text-lg lg:text-xl font-semibold ${
+              isHighlighted ? "text-[#BEF264]" : "text-gray-300"
+            }`}
+          >
+            {education.degree}
+          </p>
+          <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+            {education.description}
+          </p>
+          {education.achievement && (
+            <div
+              className={`${
+                isHighlighted
+                  ? "bg-gradient-to-r from-[#BEF264] to-[#4ade80] text-black"
+                  : "bg-gray-700/50 text-gray-300"
+              } px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold inline-block mt-2 text-sm sm:text-base`}
+            >
+              {education.achievement}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const EducationSection: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
+  const { isMobile } = useResponsive();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50 }}
+      animate={isVisible ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.8, delay: 0.6 }}
+      className="mt-12 sm:mt-16"
+    >
+      <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-12">
+        <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#BEF264] to-[#4ade80] bg-clip-text text-transparent">
+          Educational Journey
+        </h3>
+        <div className="flex-1 h-0.5 bg-gradient-to-r from-[#BEF264]/50 to-transparent" />
+      </div>
+
+      <div className="relative">
+        {/* Timeline Line - Desktop Only */}
+        {!isMobile && (
+          <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-[#BEF264] via-[#4ade80] to-[#22c55e] rounded-full" />
+        )}
+
+        <div className="space-y-8 sm:space-y-12 lg:space-y-16">
+          {EDUCATION_DATA.map((education, index) => (
+            <EducationCard
+              key={education.id}
+              education={education}
+              index={index}
+              isVisible={isVisible}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ====================== Main Component ======================
 const About: React.FC = () => {
   const { isVisible, elementRef } = useIntersectionObserver();
+  const { isMobile } = useResponsive();
   const canvasRef = useParticleAnimation();
 
   return (
     <section
       ref={elementRef}
-      className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0f0f0f] text-white relative overflow-hidden py-20"
+      className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0f0f0f] text-white relative overflow-hidden py-12 sm:py-16 lg:py-20"
     >
-      {/* Particle background canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-50" />
+      {/* Particle Background */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 z-0 opacity-30 sm:opacity-40 lg:opacity-50"
+      />
 
-      {/* Background gradient blobs */}
+      {/* Background Gradient Blobs */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#BEF264]/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#4ade80]/5 rounded-full blur-3xl animate-pulse animation-delay-2000" />
+        <div className="absolute top-1/4 left-1/4 w-48 h-48 sm:w-64 sm:h-64 lg:w-96 lg:h-96 bg-[#BEF264]/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-[#4ade80]/5 rounded-full blur-3xl animate-pulse animation-delay-2000" />
       </div>
 
-      {/* Main content */}
+      {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
+        {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={isVisible ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
-          className="mb-12"
+          className="mb-8 sm:mb-12"
         >
           <motion.h2
-            className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#BEF264] to-[#4ade80] bg-clip-text text-transparent mb-4"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#BEF264] to-[#4ade80] bg-clip-text text-transparent mb-3 sm:mb-4"
             initial={{ scale: 0.9 }}
             animate={isVisible ? { scale: 1 } : {}}
             transition={{ duration: 0.5 }}
@@ -616,20 +689,20 @@ const About: React.FC = () => {
             About Me
           </motion.h2>
           <motion.div
-            className="w-24 h-1 bg-gradient-to-r from-[#BEF264] to-[#4ade80] rounded-full"
+            className="h-1 bg-gradient-to-r from-[#BEF264] to-[#4ade80] rounded-full"
             initial={{ width: 0 }}
-            animate={isVisible ? { width: 96 } : {}}
+            animate={isVisible ? { width: isMobile ? 64 : 96 } : { width: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           />
         </motion.div>
 
-        {/* Main content grid */}
-        <div className="grid lg:grid-cols-2 gap-16 items-start mb-16">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-start mb-8 sm:mb-12 lg:mb-16">
           <ProfileSection isVisible={isVisible} />
           <SkillsSection isVisible={isVisible} />
         </div>
 
-        {/* Education section */}
+        {/* Education Section */}
         <EducationSection isVisible={isVisible} />
       </div>
     </section>

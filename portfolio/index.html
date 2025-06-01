@@ -1,13 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Character encoding and viewport -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gagana Methmal</title>
+
+    <!-- Primary Meta Tags -->
+    <title>Gagana Methmal - Software Developer & DevOps Enthusiast</title>
+    <meta
+      name="title"
+      content="Gagana Methmal - Full Stack Developer & UI/UX Designer"
+    />
+    <meta
+      name="description"
+      content="Passionate full stack developer and UI/UX designer creating innovative digital experiences. Explore my portfolio of web applications, mobile apps, and design projects."
+    />
+    <meta
+      name="keywords"
+      content="Gagana Methmal, Full Stack Developer, UI/UX Designer, Web Developer, React, TypeScript, Portfolio"
+    />
+    <meta name="author" content="Gagana Methmal" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://gaganamethmal.com/" />
+    <meta
+      property="og:title"
+      content="Gagana Methmal - Full Stack Developer & UI/UX Designer"
+    />
+    <meta
+      property="og:description"
+      content="Passionate full stack developer and UI/UX designer creating innovative digital experiences."
+    />
+    <meta property="og:image" content="/gm-og-image.jpg" />
+    <meta property="og:site_name" content="Gagana Methmal Portfolio" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://gaganamethmal.com/" />
+    <meta
+      property="twitter:title"
+      content="Gagana Methmal - Full Stack Developer & UI/UX Designer"
+    />
+    <meta
+      property="twitter:description"
+      content="Passionate full stack developer and UI/UX designer creating innovative digital experiences."
+    />
+    <meta property="twitter:image" content="/gm-og-image.jpg" />
+
+    <!-- GM Logo and Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="alternate icon" href="/gm-favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/gm-apple-touch-icon.png"
+    />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Theme and App Configuration -->
+    <meta name="theme-color" content="#BEF264" />
+    <meta name="msapplication-TileColor" content="#BEF264" />
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- Performance and Security -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.tsx" as="script" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Gagana Methmal",
+        "jobTitle": "Full Stack Developer & UI/UX Designer",
+        "url": "https://gaganamethmal.com",
+        "sameAs": [
+          "https://linkedin.com/in/gaganamethmal",
+          "https://github.com/gaganamethmal"
+        ],
+        "knowsAbout": [
+          "Web Development",
+          "UI/UX Design",
+          "React",
+          "TypeScript",
+          "Full Stack Development"
+        ]
+      }
+    </script>
   </head>
+
   <body>
+    <!-- React Application Root -->
     <div id="root"></div>
+
+    <!-- Main Application Script -->
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Fallback for users with TypeScript disabled -->
+    <noscript>
+      <div
+        style="
+          text-align: center;
+          padding: 50px;
+          font-family: Arial, sans-serif;
+          background: #1a1a1a;
+          color: #bef264;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <h1 style="margin-bottom: 20px; font-size: 2em">
+          🚀 Gagana Methmal - Portfolio
+        </h1>
+        <p style="font-size: 1.2em; margin-bottom: 15px">
+          This website requires TypeScript to function properly.
+        </p>
+        <p>Please enable TypeScript in your browser to view my portfolio.</p>
+      </div>
+    </noscript>
   </body>
 </html>
