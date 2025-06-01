@@ -457,7 +457,7 @@ const Contact: React.FC = () => {
         output = TERMINAL_COMMANDS.INFO(CONTACT_INFO);
         break;
 
-      case "status":
+      case "status": {
         const errors = validateFormData(formData);
         if (Object.keys(errors).length === 0) {
           output = `✅ Form Status: Ready to send!
@@ -474,6 +474,7 @@ const Contact: React.FC = () => {
           type = "error";
         }
         break;
+      }
 
       case "clear":
         setCommandHistory([
@@ -487,10 +488,10 @@ const Contact: React.FC = () => {
         type = "success";
         break;
 
-      case "send":
+      case "send": {
         const sendErrors = validateFormData(formData);
         if (Object.keys(sendErrors).length === 0) {
-          handleSubmit(new Event("submit") as any);
+          handleSubmit({ preventDefault: () => {} } as React.FormEvent);
           output = "🚀 Message sent successfully!";
           type = "success";
         } else {
@@ -500,6 +501,7 @@ const Contact: React.FC = () => {
           type = "error";
         }
         break;
+      }
 
       default:
         // Handle parameter commands

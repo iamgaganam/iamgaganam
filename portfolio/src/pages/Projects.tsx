@@ -93,7 +93,7 @@ interface Project {
 }
 
 interface ParticleAnimationProps {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
 interface ProjectImageProps {

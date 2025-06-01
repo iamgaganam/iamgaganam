@@ -245,7 +245,9 @@ const useIntersectionObserver = (
     const element = elementRef.current;
     if (element) observer.observe(element);
 
-    return () => element && observer.unobserve(element);
+    return () => {
+      if (element) observer.unobserve(element);
+    };
   }, [threshold]);
 
   return { isVisible, elementRef };
@@ -254,7 +256,7 @@ const useIntersectionObserver = (
 const useParticleAnimation = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { isMobile } = useResponsive();
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
 
   const createParticle = useCallback(
     (canvas: HTMLCanvasElement): Particle => ({

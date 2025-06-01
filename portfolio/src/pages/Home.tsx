@@ -98,7 +98,7 @@ const CONTENT = {
 
 // ============= UTILITY HOOKS =============
 const useAnimationFrame = (callback: () => void) => {
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
   const animate = useCallback(() => {
     callback();
     requestRef.current = requestAnimationFrame(animate);
@@ -233,7 +233,10 @@ class CanvasRenderer {
   private particles: Particle[] = [];
   private stars: Star[] = [];
 
-  constructor(private canvas: HTMLCanvasElement) {
+  private canvas: HTMLCanvasElement;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     this.initializeParticles();
     this.initializeStars();
   }
@@ -449,7 +452,7 @@ const Home = () => {
     if (!typedRef.current) return;
 
     const typed = new Typed(typedRef.current, {
-      strings: CONTENT.TYPED_STRINGS,
+      strings: [...CONTENT.TYPED_STRINGS],
       typeSpeed: 80,
       backSpeed: 50,
       backDelay: 1500,

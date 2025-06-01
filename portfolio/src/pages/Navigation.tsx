@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiSun, FiMoon, FiMenu, FiX } from "react-icons/fi";
 
 // Constants
 const SCROLL_THRESHOLD = 20;
 const SECTION_OFFSET = 100;
-const BRAND_COLOR = "#BEF264";
 const MOBILE_MENU_WIDTH = "w-72";
 
 // Types
@@ -96,10 +95,10 @@ const Navigation = () => {
     }
   };
 
-  const handleScroll = (): void => {
+  const handleScroll = useCallback((): void => {
     setScrolled(window.scrollY > SCROLL_THRESHOLD);
     updateActiveSection();
-  };
+  }, []);
 
   // Navigation
   const scrollToSection = (sectionId: string): void => {
@@ -124,7 +123,7 @@ const Navigation = () => {
     window.addEventListener("scroll", handleScroll);
     handleScroll(); // Set initial state
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   // Render helpers
   const renderLogo = () => (
