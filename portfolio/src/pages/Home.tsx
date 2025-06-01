@@ -65,7 +65,7 @@ const ANIMATION_CONFIG = {
 } as const;
 
 const CONTENT = {
-  RESUME_URL: "/Gagana_Resume.pdf",
+  RESUME_URL: "/iamgaganam/Gagana_Resume.pdf",
   TYPED_STRINGS: [
     "Software Developer",
     "DevOps Enthusiast",
@@ -425,25 +425,27 @@ const Home = () => {
 
     setIsDownloading(true);
     try {
-      const response = await fetch(CONTENT.RESUME_URL);
-      if (!response.ok) throw new Error("Resume not found");
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
+      // Create a direct link element and trigger download immediately
       const link = document.createElement("a");
-      link.href = url;
+      link.href = CONTENT.RESUME_URL;
       link.download = "Gagana_Methmal_Resume.pdf";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+
+      // Add to DOM, click, and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      // Also open in new tab as backup
+      window.open(CONTENT.RESUME_URL, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("Download failed:", error);
-      window.open(CONTENT.RESUME_URL, "_blank");
+      // Fallback: directly open the resume URL
+      window.open(CONTENT.RESUME_URL, "_blank", "noopener,noreferrer");
     } finally {
-      setIsDownloading(false);
+      // Short delay to show downloading state
+      setTimeout(() => setIsDownloading(false), 1000);
     }
   }, [isDownloading]);
 
@@ -611,7 +613,7 @@ const Home = () => {
               aria-label="Download Resume"
             >
               <span>
-                {isDownloading ? "Downloading..." : "Download Resume"}
+                {isDownloading ? "Opening Resume..." : "Download Resume"}
               </span>
               <HiDownload
                 className={`text-xl ${
